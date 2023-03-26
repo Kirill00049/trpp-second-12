@@ -23,11 +23,11 @@ micronaut {
 dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.18'
     compileOnly 'org.projectlombok:lombok:1.18.18'
-
     implementation("io.micronaut:micronaut-runtime")
     implementation("io.micronaut:micronaut-validation")
     implementation("io.micronaut:micronaut-http-client")
     implementation("javax.annotation:javax.annotation-api")
+    implementation group: 'com.opencsv', name: 'opencsv', version: '5.7.1'
     implementation("org.apache.logging.log4j:log4j-core:2.12.1")
     runtimeOnly("org.apache.logging.log4j:log4j-api:2.12.1")
     runtimeOnly("org.apache.logging.log4j:log4j-slf4j-impl:2.12.1")
@@ -67,6 +67,15 @@ shadowJar {
     classifier('')
 }
 
+sourceSets {
+    main {
+        java {
+            srcDirs = ['.gradle', 'build']
+            exclude '/**'
+        }
+    }
+}
+
 checkstyle {
     toolVersion '7.8.1'
     configFile file("config/checkstyle/checkstyle.xml")
@@ -79,3 +88,29 @@ checkstyleMain {
 checkstyleTest {
     source ='src/test/java'
 }
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+
+    if (System.env.CI == 'true') {
+        testLogging.showStandardStreams = true
+        minHeapSize "1g"
+        maxHeapSize "1g"
+    }
+
+    systemProperty 'java.io.tmpdir', buildDir.absolutePath
+
+    // Required to test configuration cache in tests when using withDebug()
+    // https://github.com/gradle/gradle/issues/22765#issuecomment-1339427241
+    jvmArgs(
+            "--add-opens",
+            "java.base/java.util=ALL-UNNAMED",
+            "--add-opens",
+            "java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+            "--add-opens",
+            "java.base/java.lang.invoke=ALL-UNNAMED",
+            "--add-opens",
+            "java.base/java.net=ALL-UNNAMED",
+    )
+}
+
